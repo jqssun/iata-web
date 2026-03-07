@@ -1,36 +1,28 @@
 import { BarcodedBoardingPass, BarcodeResponse, DecodeRequest } from './types';
 
-const API_URL = process.env.API_URL || 'http://localhost:8000';
+const base = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-export async function decodeBoardingPass(barcode: string, year?: number): Promise<BarcodedBoardingPass> {
-  const req: DecodeRequest = { barcode, ...(year ? { year } : {}) };
-
-  const res = await fetch(`${API_URL}/iata/decode`, {
+async function _post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${base}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.detail || `Decode failed (${res.status})`);
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail || `Failed (${res.status})`);
   }
 
   return res.json();
 }
 
-export async function encodeBoardingPass(bcbp: BarcodedBoardingPass): Promise<string> {
-  const res = await fetch(`${API_URL}/iata/encode`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bcbp),
-  });
+export function decodeBoardingPass(barcode: string, year?: number) {
+  const req: DecodeRequest = { barcode, ...(year ? { year } : {}) };
+  return _post<BarcodedBoardingPass>('/api/decode', req);
+}
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(body?.detail || `Encode failed (${res.status})`);
-  }
-
-  const data: BarcodeResponse = await res.json();
+export async function encodeBoardingPass(bcbp: BarcodedBoardingPass) {
+  const data = await _post<BarcodeResponse>('/api/encode', bcbp);
   return data.barcode;
 }

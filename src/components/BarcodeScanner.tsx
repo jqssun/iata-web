@@ -1,14 +1,22 @@
 'use client';
 
 import { sanitizeBarcodeInput } from '@/lib/utils';
-import { BarcodeFormat, DecodeHintType } from '@zxing/library';
-import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
+import { BarcodeFormat, BrowserMultiFormatReader, DecodeHintType } from '@zxing/library';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
   isLoading?: boolean;
 }
+
+const _hints = new Map<DecodeHintType, unknown>();
+_hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+  BarcodeFormat.PDF_417,
+  BarcodeFormat.QR_CODE,
+  BarcodeFormat.AZTEC,
+  BarcodeFormat.DATA_MATRIX,
+]);
+_hints.set(DecodeHintType.TRY_HARDER, true);
 
 export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProps) {
   const [input, setInput] = useState('');
@@ -19,13 +27,15 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [frozenImageData, setFrozenImageData] = useState<string | null>(null);
+  const [squareMode, setSquareMode] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,24 +54,19 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
     el.style.height = el.scrollHeight + 'px';
   };
 
-  const _hints = new Map<DecodeHintType, unknown>();
-  _hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-    BarcodeFormat.PDF_417,
-    BarcodeFormat.QR_CODE,
-    BarcodeFormat.AZTEC,
-    BarcodeFormat.DATA_MATRIX,
-  ]);
-  _hints.set(DecodeHintType.TRY_HARDER, true);
-
   const stopScanning = useCallback(() => {
-    if (controlsRef.current) {
-      controlsRef.current.stop();
-      controlsRef.current = null;
+    if (scanIntervalRef.current) {
+      clearTimeout(scanIntervalRef.current);
+      scanIntervalRef.current = null;
     }
 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+
+    if (readerRef.current) {
+      readerRef.current.reset();
     }
 
     setIsScanning(false);
@@ -126,23 +131,32 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
         videoRef.current.srcObject = stream;
         videoRef.current.play();
 
-        videoRef.current.onloadedmetadata = async () => {
+        videoRef.current.onloadedmetadata = () => {
           setIsScanning(true);
 
-          const reader = new BrowserMultiFormatReader(_hints);
-          controlsRef.current = await reader.decodeFromVideoElement(
-            videoRef.current!,
-            (result, error) => {
-              if (result) {
+          if (!readerRef.current) {
+            readerRef.current = new BrowserMultiFormatReader(_hints);
+          }
+
+          const scanFrame = async () => {
+            if (!videoRef.current || !readerRef.current || isPaused) return;
+
+            try {
+              const result = await readerRef.current.decodeFromVideoElement(videoRef.current);
+              if (result && result.getText()) {
                 onScan(result.getText());
                 stopScanning();
+                return;
               }
-              // Ignore NotFoundException etc. — normal when no barcode in frame
-              if (error && error.name !== 'NotFoundException') {
-                console.debug('Scan error:', error);
-              }
+            } catch {
             }
-          );
+
+            if (isScanning && !isPaused) {
+              scanIntervalRef.current = setTimeout(scanFrame, 50);
+            }
+          };
+
+          scanFrame();
         };
       }
     } catch (error) {
@@ -150,7 +164,7 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
       setScanError('Camera access denied. Please allow camera permissions.');
       setShowCamera(false);
     }
-  }, [onScan, stopScanning, getCameras, cameras, currentCameraIndex]);
+  }, [onScan, isScanning, stopScanning, getCameras, cameras, currentCameraIndex, isPaused]);
 
   const scanBarcodeFromImage = useCallback(async (imageFile: File): Promise<void> => {
     try {
@@ -205,27 +219,32 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
       setIsPaused(false);
       setFrozenImageData(null);
       setScanError(null);
-      // Resume continuous scanning
-      if (isScanning && videoRef.current) {
-        const reader = new BrowserMultiFormatReader(_hints);
-        controlsRef.current = await reader.decodeFromVideoElement(
-          videoRef.current,
-          (result, error) => {
-            if (result) {
+
+      if (isScanning && readerRef.current) {
+        const scanFrame = async () => {
+          if (!videoRef.current || !readerRef.current || isPaused) return;
+
+          try {
+            const result = await readerRef.current.decodeFromVideoElement(videoRef.current);
+            if (result && result.getText()) {
               onScan(result.getText());
               stopScanning();
+              return;
             }
-            if (error && error.name !== 'NotFoundException') {
-              console.debug('Scan error:', error);
-            }
+          } catch {
           }
-        );
+
+          if (isScanning && !isPaused) {
+            scanIntervalRef.current = setTimeout(scanFrame, 50);
+          }
+        };
+        scanFrame();
       }
     } else {
       setIsPaused(true);
-      if (controlsRef.current) {
-        controlsRef.current.stop();
-        controlsRef.current = null;
+      if (scanIntervalRef.current) {
+        clearTimeout(scanIntervalRef.current);
+        scanIntervalRef.current = null;
       }
 
       const video = videoRef.current;
@@ -288,8 +307,8 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
 
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
               <div style={{
-                width: '240px',
-                height: '160px',
+                width: squareMode ? '192px' : '320px',
+                height: squareMode ? '192px' : '120px', // 160px
                 border: '2px dashed',
                 borderColor: isPaused ? '#ffdd00' : '#ffffff',
                 borderRadius: '8px',
@@ -333,6 +352,21 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
             </div>
           </div>
 
+          <div className="govuk-checkboxes govuk-checkboxes--small" style={{ padding: '8px 12px', backgroundColor: '#f3f2f1' }}>
+            <div className="govuk-checkboxes__item" style={{ marginBottom: 0 }}>
+              <input
+                className="govuk-checkboxes__input"
+                id="square-mode"
+                type="checkbox"
+                checked={squareMode}
+                onChange={e => setSquareMode(e.target.checked)}
+              />
+              <label className="govuk-label govuk-checkboxes__label" htmlFor="square-mode">
+                Square matrix code
+              </label>
+            </div>
+          </div>
+
           <div className={isPaused ? 'govuk-warning-text' : 'govuk-inset-text'} style={{
             padding: '12px',
             textAlign: 'center',
@@ -351,7 +385,7 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
                 Scanning...
               </p>
             ) : (
-              <p className="govuk-body-s" style={{ marginBottom: 0, color: '#ffffff' }}>Initialising camera...</p>
+              <p className="govuk-body-s" style={{ marginBottom: 0, color: '#ffffff' }}>Preparing...</p>
             )}
           </div>
         </div>
@@ -378,7 +412,7 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
           disabled={isLoading}
           rows={1}
           className="govuk-textarea"
-          style={{ overflow: 'hidden', resize: 'none' }} // disable manual resize
+          style={{ overflow: 'hidden', resize: 'none' }}
         />
 
         <div className="govuk-button-group govuk-!-margin-top-4">
@@ -398,7 +432,7 @@ export default function BarcodeScanner({ onScan, isLoading }: BarcodeScannerProp
             className={`govuk-button ${isScanning ? 'govuk-button--warning' : 'govuk-button--secondary'}`}
             data-module="govuk-button"
           >
-            {isScanning ? 'Stop Camera' : 'Scan Barcode'}
+            {isScanning ? 'Stop Camera' : 'Scan'}
           </button>
 
           <button

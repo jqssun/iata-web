@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "bwip-js": "^4.5.1",
     "heic2any": "^0.0.4",

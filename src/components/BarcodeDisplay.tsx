@@ -96,7 +96,6 @@ export default function BarcodeDisplay({ barcode, test }: BarcodeDisplayProps) {
   const [format, setFormat] = useState<BarcodeFormat>('pdf417');
   const [formatOpts, setFormatOpts] = useState<Record<string, string | boolean>>(_defaultOpts('pdf417'));
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
-  const [copySuccess, setCopySuccess] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handleFormatChange = (fmt: BarcodeFormat) => {
@@ -185,13 +184,11 @@ export default function BarcodeDisplay({ barcode, test }: BarcodeDisplayProps) {
     }).catch(() => {});
   }, [barcode, format, formatOpts, test]);
 
-  const handleCopy = async () => {
+  const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(barcode);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      await navigator.share({ url: window.location.href });
     } catch {
-      // clipboard not available
+      // share cancelled or not available
     }
   };
 
@@ -255,33 +252,33 @@ export default function BarcodeDisplay({ barcode, test }: BarcodeDisplayProps) {
       <div className="govuk-notification-banner govuk-!-margin-top-2" role="region" aria-labelledby="barcode-banner-title">
         <div className="govuk-notification-banner__header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 className="govuk-notification-banner__title" id="barcode-banner-title">{test ? 'DCS TRAINING ONLY' : 'Barcode'}</h2>
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); window.print(); }}
-            className="govuk-notification-banner__title govuk-link"
-            style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer' }}
-          >
-            Print
-          </a>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); window.print(); }}
+              className="govuk-notification-banner__title govuk-link"
+              style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              Print
+            </a>
+            <a
+              href="#"
+              onClick={(e) => { e.preventDefault(); handleShare(); }}
+              className="govuk-notification-banner__title govuk-link"
+              style={{ color: '#ffffff', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              Share
+            </a>
+          </div>
         </div>
         <div className="govuk-notification-banner__content" style={{ position: 'relative', padding: 0, display: 'flex', justifyContent: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px 0', maxWidth: 'none', overflow: 'hidden' }}>
             <canvas ref={canvasRef} style={{ maxWidth: '100%', height: 'auto', marginBottom: '10px' }} />
             <p className="govuk-body" style={{ fontFamily: 'monospace', fontSize: '0.75rem', wordBreak: 'break-all', textAlign: 'center', padding: '0 15px', marginBottom: 0 }}>{barcode}</p>
           </div>
-          <div style={{ position: 'absolute', top: '50%', right: '15px', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={handleCopy}
-              className="govuk-button govuk-button--secondary"
-              title="Copy barcode string to clipboard"
-              style={{ marginBottom: 0 }}
-              data-module="govuk-button"
-            >
-              {copySuccess ? 'Copied' : 'Copy'}
-            </button>
-          </div>
         </div>
       </div>
+
     </div>
   );
 }

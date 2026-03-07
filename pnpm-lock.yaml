@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@zxing/browser':
-        specifier: ^0.1.5
-        version: 0.1.5(@zxing/library@0.21.3)
       '@zxing/library':
         specifier: ^0.21.3
         version: 0.21.3
@@ -619,11 +616,6 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
-
-  '@zxing/browser@0.1.5':
-    resolution: {integrity: sha512-4Lmrn/il4+UNb87Gk8h1iWnhj39TASEHpd91CwwSJtY5u+wa0iH9qS0wNLAWbNVYXR66WmT5uiMhZ7oVTrKfxw==}
-    peerDependencies:
-      '@zxing/library': ^0.21.0
 
   '@zxing/library@0.21.3':
     resolution: {integrity: sha512-hZHqFe2JyH/ZxviJZosZjV+2s6EDSY0O24R+FQmlWZBZXP9IqMo7S3nb3+2LBWxodJQkSurdQGnqE7KXqrYgow==}
@@ -2293,12 +2285,6 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
-
-  '@zxing/browser@0.1.5(@zxing/library@0.21.3)':
-    dependencies:
-      '@zxing/library': 0.21.3
-    optionalDependencies:
-      '@zxing/text-encoding': 0.9.0
 
   '@zxing/library@0.21.3':
     dependencies:

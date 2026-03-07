@@ -53,13 +53,38 @@ export default function CreatePage() {
     const nd = part === 'day' ? val : (d || '');
     const nm = part === 'month' ? val : (m || '');
     const ny = part === 'year' ? val : (y || '');
-    const combined = `${ny}-${nm.padStart(2, '0')}-${nd.padStart(2, '0')}`;
-    updateLeg(i, 'date_of_flight', combined === '00-00-00' ? '' : combined);
+    const combined = `${ny}-${nm}-${nd}`;
+    updateLeg(i, 'date_of_flight', combined === '--' ? '' : combined);
+  };
+
+  const _validate = (): string | null => {
+    if (!name.trim()) return 'Passenger name is required';
+    for (let i = 0; i < legs.length; i++) {
+      const leg = legs[i]!;
+      const p = legs.length > 1 ? ` (leg ${i + 1})` : '';
+      if (!leg.from_city_airport_code || leg.from_city_airport_code.length !== 3)
+        return `From airport code must be 3 characters${p}`;
+      if (!leg.to_city_airport_code || leg.to_city_airport_code.length !== 3)
+        return `To airport code must be 3 characters${p}`;
+      if (!leg.operating_carrier_designator || leg.operating_carrier_designator.length < 2)
+        return `Carrier code must be 2-3 characters${p}`;
+      if (!leg.flight_number) return `Flight number is required${p}`;
+      if (!leg.compartment_code) return `Compartment code is required${p}`;
+      if (leg.date_of_flight) {
+        const d = new Date(leg.date_of_flight);
+        if (isNaN(d.getTime())) return `Date of flight is not valid${p}`;
+      }
+    }
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const err = _validate();
+    if (err) { setError(err); return; }
+
     setLoading(true);
 
     const processedLegs = legs.map(leg => ({
@@ -87,6 +112,15 @@ export default function CreatePage() {
     <div className="govuk-grid-row">
       <div className="govuk-grid-column-two-thirds">
         <h1 className="govuk-heading-xl">Enter boarding pass details</h1>
+
+        {error && (
+          <div className="govuk-error-summary govuk-!-margin-bottom-6" aria-labelledby="encode-error-title" role="alert" data-module="govuk-error-summary">
+            <h2 className="govuk-error-summary__title" id="encode-error-title">There is a problem</h2>
+            <div className="govuk-error-summary__body">
+              <p className="govuk-body">{error}</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="govuk-form-group govuk-!-margin-bottom-8">
@@ -309,14 +343,6 @@ export default function CreatePage() {
           </div>
         </form>
 
-        {error && (
-          <div className="govuk-error-summary govuk-!-margin-top-6" aria-labelledby="encode-error-title" role="alert" data-module="govuk-error-summary">
-            <h2 className="govuk-error-summary__title" id="encode-error-title">There is a problem</h2>
-            <div className="govuk-error-summary__body">
-              <p className="govuk-body">{error}</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

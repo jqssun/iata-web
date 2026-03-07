@@ -75,7 +75,7 @@ export default function RootLayout({
                 <span className="govuk-footer__licence-description">
                   This service is an independent reference implementation for reading Bar Coded Boarding Pass (BCBP) data in accordance with <a className="govuk-footer__link" href="https://www.iata.org/en/programs/passenger/common-use/" target="_blank" rel="noopener noreferrer">IATA Resolution 792</a>. No personal data is stored or retained.
                   <br /><br />
-                  This project is free and open source. Barcode scanner based on <a className="govuk-footer__link" href="https://github.com/zxing-js/browser" target="_blank" rel="noopener noreferrer">ZXing (&ldquo;zebra crossing&rdquo;)</a>. Font is <a className="govuk-footer__link" href="https://www.k-type.com/fonts/transport-new/" target="_blank" rel="noopener noreferrer">Transport New</a>.
+                  This project is free and open source. Barcode scanner based on <a className="govuk-footer__link" href="https://github.com/zxing-js/library" target="_blank" rel="noopener noreferrer">ZXing (&ldquo;zebra crossing&rdquo;)</a>. Font is <a className="govuk-footer__link" href="https://www.k-type.com/fonts/transport-new/" target="_blank" rel="noopener noreferrer">Transport New</a>.
                   Site design using the{" "}
                   <a
                     className="govuk-footer__link"

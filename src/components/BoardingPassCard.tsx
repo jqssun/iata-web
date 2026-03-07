@@ -3,6 +3,7 @@
 import { BarcodedBoardingPass, Leg, compartmentLabel } from '@/lib/types';
 import { formatDate } from '@/lib/utils';
 import BarcodeDisplay from './BarcodeDisplay';
+import WalletButtons from './WalletButtons';
 
 interface BoardingPassCardProps {
   bcbp: BarcodedBoardingPass;
@@ -15,7 +16,7 @@ function _Row({ label, value }: { label: string; value: string | null | undefine
   return (
     <tr className="govuk-table__row">
       <th scope="row" className="govuk-table__header" style={{ width: '50%' }}>{label}</th>
-      <td className="govuk-table__cell">{value}</td>
+      <td className="govuk-table__cell" style={{ wordBreak: 'break-all' }}>{value}</td>
     </tr>
   );
 }
@@ -40,7 +41,7 @@ function LegCard({ leg }: { leg: Leg }) {
       <_Row label="To" value={leg.to_city_airport_code} />
       <_Row label="Carrier" value={leg.operating_carrier_designator} />
       <_Row label="Flight number" value={leg.flight_number} />
-      <_Row label="Date of flight" value={formatDate(leg.date_of_flight)} />
+      <_Row label="Date of flight" value={leg.date_of_flight ? new Date(leg.date_of_flight).toLocaleDateString(undefined, { day: 'numeric', month: 'long' }) : undefined} />
       <_Row label="Compartment" value={compartmentLabel(leg.compartment_code)} />
       <_Row label="Seat" value={leg.seat_number?.trim()} />
       <_Row label="Check-in sequence" value={leg.check_in_sequence_number} />
@@ -145,6 +146,19 @@ export default function BoardingPassCard({ bcbp, barcode, test }: BoardingPassCa
             </table>
           </div>
         </details>
+      )}
+
+      {barcode && legs[0] && (
+        <WalletButtons
+          barcode={barcode}
+          barcodeFormat="pdf417"
+          flight={`${legs[0].operating_carrier_designator}${legs[0].flight_number?.replace(/^0+/, '')}`}
+          from={legs[0].from_city_airport_code || ''}
+          to={legs[0].to_city_airport_code || ''}
+          seat={legs[0].seat_number?.trim().replace(/^0+/, '') || ''}
+          bookingRef={legs[0].operating_carrier_pnr_code || ''}
+          passengerName={data?.passenger_name || ''}
+        />
       )}
     </div>
   );

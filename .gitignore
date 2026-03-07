@@ -3,6 +3,8 @@
 *.pem
 *.md
 public/assets/fonts/TransportNew*.otf
+public/assets/images/enUS_add_to_google_wallet_add-wallet-badge.svg
+public/assets/images/US-UK_Add_to_Apple_Wallet_RGB_101421.svg
 !README.md
 !.env.example
 

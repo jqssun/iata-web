@@ -6,6 +6,7 @@ const VALID_ROUTES = [
   /^\/view$/,
   /^\/encode$/,
   /^\/create$/,
+  /^\/api\//,
 ];
 
 export function proxy(request: NextRequest) {

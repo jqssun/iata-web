@@ -14,7 +14,8 @@
   }
   .govuk-form-group,
   .govuk-button-group,
-  .govuk-back-link {
+  .govuk-back-link,
+  .no-print {
     display: none !important;
   }
 }

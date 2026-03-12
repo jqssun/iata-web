@@ -19,9 +19,11 @@ const PKPASS_FORMAT_MAP: Record<string, string> = {
 };
 
 export default function WalletButtons({ barcode, barcodeFormat, flight, from, to, seat, bookingRef, passengerName }: WalletButtonsProps) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
   const handleAppleWallet = async () => {
     try {
-      const res = await fetch('/api/pkpass', {
+      const res = await fetch(`${basePath}/api/pkpass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -47,16 +49,19 @@ export default function WalletButtons({ barcode, barcodeFormat, flight, from, to
   };
 
   const handleGoogleWallet = async () => {
-    try {
-      const canvas = document.querySelector('canvas');
-      if (!canvas) return;
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(b => b ? resolve(b) : reject(), 'image/png');
-      });
-      const file = new File([blob], 'PASS.PNG', { type: 'image/png' });
-      await navigator.share({ files: [file] });
-    } catch {
-      // share cancelled or not supported
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return;
+    const blob = await new Promise<Blob | null>(resolve => {
+      canvas.toBlob(b => resolve(b), 'image/png');
+    });
+    if (!blob) return;
+
+    const file = new File([blob], 'PASS.PNG', { type: 'image/png' });
+    alert('Share image with Google Wallet');
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file] }).catch(() => {});
+    } else {
+      window.open(URL.createObjectURL(blob), '_blank');
     }
   };
 
@@ -68,7 +73,7 @@ export default function WalletButtons({ barcode, barcodeFormat, flight, from, to
         aria-label="Add to Apple Wallet"
       >
         <img
-          src="/assets/images/US-UK_Add_to_Apple_Wallet_RGB_101421.svg"
+          src={`${basePath}/assets/images/US-UK_Add_to_Apple_Wallet_RGB_101421.svg`}
           alt="Add to Apple Wallet"
           height={48}
         />
@@ -79,7 +84,7 @@ export default function WalletButtons({ barcode, barcodeFormat, flight, from, to
         aria-label="Add to Google Wallet"
       >
         <img
-          src="/assets/images/enUS_add_to_google_wallet_add-wallet-badge.svg"
+          src={`${basePath}/assets/images/enUS_add_to_google_wallet_add-wallet-badge.svg`}
           alt="Add to Google Wallet"
           height={48}
         />

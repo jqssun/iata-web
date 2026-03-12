@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetch, ProxyAgent } from 'undici';
 
 const PKPASS_API = process.env.PKPASS_API_URL || 'http://localhost:8000/api/pkpass';
+const PKPASS_PROXY = process.env.PKPASS_PROXY_URL || 'http://localhost:8888';
+const proxyAgent = new ProxyAgent(PKPASS_PROXY);
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -8,6 +11,7 @@ export async function POST(req: NextRequest) {
 
   const res = await fetch(PKPASS_API, {
     method: 'POST',
+    dispatcher: proxyAgent,
     headers: {
       'Content-Type': 'application/json',
       'Host': host,

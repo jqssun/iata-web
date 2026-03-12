@@ -304,7 +304,7 @@ export default function CreatePage() {
 
               <details className="govuk-details govuk-!-margin-top-2">
                 <summary className="govuk-details__summary">
-                  <span className="govuk-details__summary-text">Additional fields</span>
+                  <span className="govuk-details__summary-text">Additional fields (optional)</span>
                 </summary>
                 <div className="govuk-details__text">
                   <div className="govuk-grid-row">
